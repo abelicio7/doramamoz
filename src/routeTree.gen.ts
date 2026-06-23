@@ -9,38 +9,168 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PagamentoRouteImport } from './routes/pagamento'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DoramaSlugRouteImport } from './routes/dorama.$slug'
+import { Route as AssistirEpisodeIdRouteImport } from './routes/assistir.$episodeId'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoRoute = PagamentoRouteImport.update({
+  id: '/pagamento',
+  path: '/pagamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DoramaSlugRoute = DoramaSlugRouteImport.update({
+  id: '/dorama/$slug',
+  path: '/dorama/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistirEpisodeIdRoute = AssistirEpisodeIdRouteImport.update({
+  id: '/assistir/$episodeId',
+  path: '/assistir/$episodeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/assistir/$episodeId': typeof AssistirEpisodeIdRoute
+  '/dorama/$slug': typeof DoramaSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/assistir/$episodeId': typeof AssistirEpisodeIdRoute
+  '/dorama/$slug': typeof DoramaSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/assistir/$episodeId': typeof AssistirEpisodeIdRoute
+  '/dorama/$slug': typeof DoramaSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/pagamento'
+    | '/perfil'
+    | '/sitemap.xml'
+    | '/assistir/$episodeId'
+    | '/dorama/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/pagamento'
+    | '/perfil'
+    | '/sitemap.xml'
+    | '/assistir/$episodeId'
+    | '/dorama/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/pagamento'
+    | '/perfil'
+    | '/sitemap.xml'
+    | '/assistir/$episodeId'
+    | '/dorama/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
+  PagamentoRoute: typeof PagamentoRoute
+  PerfilRoute: typeof PerfilRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AssistirEpisodeIdRoute: typeof AssistirEpisodeIdRoute
+  DoramaSlugRoute: typeof DoramaSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento': {
+      id: '/pagamento'
+      path: '/pagamento'
+      fullPath: '/pagamento'
+      preLoaderRoute: typeof PagamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +178,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dorama/$slug': {
+      id: '/dorama/$slug'
+      path: '/dorama/$slug'
+      fullPath: '/dorama/$slug'
+      preLoaderRoute: typeof DoramaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistir/$episodeId': {
+      id: '/assistir/$episodeId'
+      path: '/assistir/$episodeId'
+      fullPath: '/assistir/$episodeId'
+      preLoaderRoute: typeof AssistirEpisodeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
+  PagamentoRoute: PagamentoRoute,
+  PerfilRoute: PerfilRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AssistirEpisodeIdRoute: AssistirEpisodeIdRoute,
+  DoramaSlugRoute: DoramaSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
