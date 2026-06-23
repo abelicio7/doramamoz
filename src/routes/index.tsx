@@ -1,29 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { HeroBanner } from "@/components/HeroBanner";
+import { DoramaCarousel } from "@/components/DoramaCarousel";
+import { destaques, populares, novos, doramas } from "@/data/doramas";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "DoramaMoz · Doramas moçambicanos por 60 MT" },
+      {
+        name: "description",
+        content:
+          "Assista aos melhores doramas moçambicanos. Pagamento único de 60 MT para acesso vitalício a todo o catálogo.",
+      },
+      { property: "og:title", content: "DoramaMoz · Doramas moçambicanos" },
+      {
+        property: "og:description",
+        content: "Acesso vitalício a todos os doramas moçambicanos por apenas 60 MT.",
+      },
     ],
   }),
-  component: Index,
+  component: Home,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Home() {
+  const featured = destaques[0] ?? doramas[0];
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <>
+      <HeroBanner dorama={featured} />
+      <DoramaCarousel id="destaques" titulo="Em destaque" doramas={destaques} />
+      <DoramaCarousel id="populares" titulo="Os mais populares" doramas={populares} />
+      <DoramaCarousel id="novos" titulo="Novos lançamentos" doramas={novos} />
+      <DoramaCarousel titulo="Romance" doramas={doramas.filter((d) => d.categoria === "Romance")} />
+    </>
   );
 }
