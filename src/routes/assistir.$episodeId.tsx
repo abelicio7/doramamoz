@@ -5,7 +5,7 @@ import { useAuth } from "@/store/auth";
 import { ChevronLeft, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/assistir/$episodeId")({
-  loader: ({ params }) => {
+  loader: ({ params }): NonNullable<ReturnType<typeof getEpisode>> => {
     const found = getEpisode(params.episodeId);
     if (!found) throw notFound();
     return found;
