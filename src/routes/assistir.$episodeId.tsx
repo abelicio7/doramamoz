@@ -20,7 +20,7 @@ export const Route = createFileRoute("/assistir/$episodeId")({
 });
 
 function WatchPage() {
-  const { dorama, episode } = Route.useLoaderData();
+  const { dorama, episode } = Route.useLoaderData() as NonNullable<ReturnType<typeof getEpisode>>;
   const user = useAuth((s) => s.user);
   const progress = useAuth((s) => s.progress);
   const setProgress = useAuth((s) => s.setProgress);
