@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { doramas } from "@/data/doramas";
+import { fetchDoramas } from "@/data/doramas";
 
 const BASE_URL = "";
 
@@ -8,12 +8,19 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        let slugs: string[] = [];
+        try {
+          const doramas = await fetchDoramas();
+          slugs = doramas.map((d) => d.slug);
+        } catch {
+          slugs = [];
+        }
         const entries = [
           { path: "/", priority: "1.0", changefreq: "weekly" as const },
           { path: "/pagamento", priority: "0.9", changefreq: "monthly" as const },
           { path: "/auth", priority: "0.5", changefreq: "yearly" as const },
-          ...doramas.map((d) => ({
-            path: `/dorama/${d.slug}`,
+          ...slugs.map((s) => ({
+            path: `/dorama/${s}`,
             priority: "0.8",
             changefreq: "weekly" as const,
           })),

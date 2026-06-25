@@ -1,14 +1,15 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { getEpisode } from "@/data/doramas";
+import { episodeQuery } from "@/data/doramas";
 import { useAuth } from "@/store/auth";
 import { ChevronLeft, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/assistir/$episodeId")({
-  loader: ({ params }): NonNullable<ReturnType<typeof getEpisode>> => {
-    const found = getEpisode(params.episodeId);
-    if (!found) throw notFound();
-    return found;
+  loader: async ({ params, context }) => {
+    const result = await context.queryClient.ensureQueryData(episodeQuery(params.episodeId));
+    if (!result) throw notFound();
+    return result;
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.dorama.titulo} · ${loaderData.episode.titulo}` : "Assistir";
@@ -20,7 +21,8 @@ export const Route = createFileRoute("/assistir/$episodeId")({
 });
 
 function WatchPage() {
-  const { dorama, episode } = Route.useLoaderData() as NonNullable<ReturnType<typeof getEpisode>>;
+  const { episodeId } = Route.useParams();
+  const { data } = useSuspenseQuery(episodeQuery(episodeId));
   const user = useAuth((s) => s.user);
   const progress = useAuth((s) => s.progress);
   const setProgress = useAuth((s) => s.setProgress);
@@ -30,15 +32,18 @@ function WatchPage() {
   const isPagante = user?.status_pagamento === "pagante";
 
   useEffect(() => {
-    if (!isPagante) return;
+    if (!isPagante || !data) return;
     const v = videoRef.current;
     if (!v) return;
-    const saved = progress[episode.id] ?? 0;
+    const saved = progress[data.episode.id] ?? 0;
     if (saved > 0) v.currentTime = saved;
-    const onTime = () => setProgress(episode.id, v.currentTime);
+    const onTime = () => setProgress(data.episode.id, v.currentTime);
     v.addEventListener("timeupdate", onTime);
     return () => v.removeEventListener("timeupdate", onTime);
-  }, [episode.id, isPagante, progress, setProgress]);
+  }, [data, isPagante, progress, setProgress]);
+
+  if (!data) return null;
+  const { dorama, episode } = data;
 
   if (!isPagante) {
     return (
