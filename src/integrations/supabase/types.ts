@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      doramas: {
+        Row: {
+          ano: number
+          capa: string
+          categoria: string
+          created_at: string
+          descricao: string
+          destaque: boolean
+          episodios_count: number
+          hero: string | null
+          id: string
+          ordem: number
+          rating: number
+          sinopse: string
+          slug: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ano?: number
+          capa: string
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          destaque?: boolean
+          episodios_count?: number
+          hero?: string | null
+          id?: string
+          ordem?: number
+          rating?: number
+          sinopse?: string
+          slug: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          capa?: string
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          destaque?: boolean
+          episodios_count?: number
+          hero?: string | null
+          id?: string
+          ordem?: number
+          rating?: number
+          sinopse?: string
+          slug?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      episodes: {
+        Row: {
+          created_at: string
+          dorama_id: string
+          duracao: string
+          id: string
+          ordem: number
+          titulo: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          dorama_id: string
+          duracao?: string
+          id?: string
+          ordem: number
+          titulo: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          dorama_id?: string
+          duracao?: string
+          id?: string
+          ordem?: number
+          titulo?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episodes_dorama_id_fkey"
+            columns: ["dorama_id"]
+            isOneToOne: false
+            referencedRelation: "doramas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           created_at: string
