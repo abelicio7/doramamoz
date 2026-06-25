@@ -13,6 +13,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { UnlockModal } from "@/components/UnlockModal";
+import { useAuth } from "@/store/auth";
 
 function NotFoundComponent() {
   return (
@@ -116,6 +117,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const init = useAuth((s) => s.init);
+  useEffect(() => init(), [init]);
 
   return (
     <QueryClientProvider client={queryClient}>
