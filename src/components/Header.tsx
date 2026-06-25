@@ -62,8 +62,8 @@ export function Header() {
               </Link>
               <button
                 type="button"
-                onClick={() => {
-                  logout();
+                onClick={async () => {
+                  await logout();
                   navigate({ to: "/" });
                 }}
                 className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-surface hover:text-foreground"

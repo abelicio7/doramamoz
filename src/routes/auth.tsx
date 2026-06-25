@@ -27,13 +27,16 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const login = useAuth((s) => s.login);
   const register = useAuth((s) => s.register);
+  const loginWithGoogle = useAuth((s) => s.loginWithGoogle);
+  const resetPassword = useAuth((s) => s.resetPassword);
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfo(null);
@@ -43,6 +46,10 @@ function AuthPage() {
     if (mode === "forgot") {
       const r = emailSchema.safeParse(email);
       if (!r.success) return setError(r.error.errors[0].message);
+      setLoading(true);
+      const { error: err } = await resetPassword(r.data);
+      setLoading(false);
+      if (err) return setError(err);
       setInfo("Se a conta existir, enviámos instruções para o seu email.");
       return;
     }
@@ -52,14 +59,32 @@ function AuthPage() {
     const pr = passSchema.safeParse(password);
     if (!pr.success) return setError(pr.error.errors[0].message);
 
+    setLoading(true);
     if (mode === "register") {
       const nr = z.string().trim().min(2, "Nome muito curto").max(80).safeParse(nome);
-      if (!nr.success) return setError(nr.error.errors[0].message);
-      register(nr.data, er.data, pr.data);
-    } else {
-      login(er.data, pr.data);
+      if (!nr.success) {
+        setLoading(false);
+        return setError(nr.error.errors[0].message);
+      }
+      const { error: err } = await register(nr.data, er.data, pr.data);
+      setLoading(false);
+      if (err) return setError(err);
+      setInfo("Conta criada! Verifique o seu email para confirmar (se necessário) e entre.");
+      setMode("login");
+      return;
     }
+    const { error: err } = await login(er.data, pr.data);
+    setLoading(false);
+    if (err) return setError(err);
     navigate({ to: (redirect as "/pagamento") || "/" });
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+    const { error: err } = await loginWithGoogle();
+    setLoading(false);
+    if (err) setError(err);
   };
 
   return (
@@ -79,29 +104,47 @@ function AuthPage() {
         </div>
 
         {mode !== "forgot" && (
-          <div className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-surface p-1 text-sm">
+          <>
+            <div className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-surface p-1 text-sm">
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className={`rounded-full px-3 py-2 font-semibold transition ${
+                  mode === "login" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("register")}
+                className={`rounded-full px-3 py-2 font-semibold transition ${
+                  mode === "register" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Criar conta
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => setMode("login")}
-              className={`rounded-full px-3 py-2 font-semibold transition ${
-                mode === "login" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              }`}
+              onClick={handleGoogle}
+              disabled={loading}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition hover:bg-surface-elevated disabled:opacity-60"
             >
-              Entrar
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+                <path fill="#EA4335" d="M12 10.2v3.84h5.32c-.23 1.4-1.66 4.1-5.32 4.1-3.2 0-5.82-2.65-5.82-5.92S8.8 6.3 12 6.3c1.83 0 3.05.78 3.75 1.45l2.55-2.47C16.7 3.78 14.55 2.8 12 2.8 6.95 2.8 2.85 6.9 2.85 12s4.1 9.2 9.15 9.2c5.28 0 8.78-3.7 8.78-8.92 0-.6-.06-1.05-.15-1.5H12z"/>
+              </svg>
+              Continuar com Google
             </button>
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={`rounded-full px-3 py-2 font-semibold transition ${
-                mode === "register" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              }`}
-            >
-              Criar conta
-            </button>
-          </div>
+
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="h-px flex-1 bg-border" /> ou <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
         )}
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="space-y-4">
           {mode === "register" && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Nome</span>
@@ -152,11 +195,16 @@ function AuthPage() {
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-accent px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-90"
+            disabled={loading}
+            className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-accent px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-90 disabled:opacity-60"
           >
-            {mode === "login" && "Entrar"}
-            {mode === "register" && "Criar conta"}
-            {mode === "forgot" && "Enviar link"}
+            {loading ? "A processar..." : (
+              <>
+                {mode === "login" && "Entrar"}
+                {mode === "register" && "Criar conta"}
+                {mode === "forgot" && "Enviar link"}
+              </>
+            )}
           </button>
         </form>
 
@@ -173,10 +221,6 @@ function AuthPage() {
           <Link to="/" className="hover:text-foreground">Voltar ao início</Link>
         </div>
       </div>
-
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        Dica: para testar o painel admin, registe-se com email começado por <code className="rounded bg-surface px-1.5 py-0.5">admin@</code>
-      </p>
     </div>
   );
 }
