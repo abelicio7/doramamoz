@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useAuth } from "@/store/auth";
-import { doramas, getEpisode } from "@/data/doramas";
+import { doramasQuery } from "@/data/doramas";
 import { Crown, Mail, Calendar, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/perfil")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(doramasQuery),
   head: () => ({ meta: [{ title: "Perfil · DoramaMoz" }] }),
   component: PerfilPage,
 });
@@ -12,6 +14,7 @@ export const Route = createFileRoute("/perfil")({
 function PerfilPage() {
   const user = useAuth((s) => s.user);
   const progress = useAuth((s) => s.progress);
+  const { data: doramas } = useSuspenseQuery(doramasQuery);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,10 +23,9 @@ function PerfilPage() {
 
   if (!user) return null;
 
-  const continuar = Object.entries(progress)
-    .filter(([, s]) => s > 5)
-    .map(([epId]) => getEpisode(epId))
-    .filter((x): x is NonNullable<ReturnType<typeof getEpisode>> => !!x)
+  const continuar = doramas
+    .flatMap((d) => d.episodios.map((ep) => ({ dorama: d, episode: ep })))
+    .filter(({ episode }) => (progress[episode.id] ?? 0) > 5)
     .slice(0, 6);
 
   const isPagante = user.status_pagamento === "pagante";

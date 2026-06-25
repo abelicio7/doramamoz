@@ -1,15 +1,16 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { getDoramaBySlug } from "@/data/doramas";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { doramaBySlugQuery } from "@/data/doramas";
 import { EpisodeList } from "@/components/EpisodeList";
 import { useAuth } from "@/store/auth";
 import { useUnlock } from "@/store/unlock";
 import { Play, Star, Calendar, Film, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/dorama/$slug")({
-  loader: ({ params }) => {
-    const dorama = getDoramaBySlug(params.slug);
-    if (!dorama) throw notFound();
-    return { dorama };
+  loader: async ({ params, context }) => {
+    const d = await context.queryClient.ensureQueryData(doramaBySlugQuery(params.slug));
+    if (!d) throw notFound();
+    return { dorama: d };
   },
   head: ({ loaderData }) => {
     const d = loaderData?.dorama;
@@ -36,9 +37,12 @@ export const Route = createFileRoute("/dorama/$slug")({
 });
 
 function DoramaPage() {
-  const { dorama } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const { data: dorama } = useSuspenseQuery(doramaBySlugQuery(slug));
   const user = useAuth((s) => s.user);
   const showUnlock = useUnlock((s) => s.show);
+
+  if (!dorama) return null;
   const isPagante = user?.status_pagamento === "pagante";
   const firstEp = dorama.episodios[0];
 
@@ -48,7 +52,6 @@ function DoramaPage() {
 
   return (
     <article>
-      {/* Hero cover */}
       <div className="relative h-[60vh] min-h-[420px] w-full overflow-hidden">
         <img
           src={dorama.hero ?? dorama.capa}
