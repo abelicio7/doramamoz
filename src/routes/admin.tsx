@@ -46,7 +46,7 @@ function AdminPage() {
         <p className="mt-3 text-muted-foreground">Esta área é restrita a administradores.</p>
         <button
           type="button"
-          onClick={promote}
+          onClick={() => void promote()}
           className="mt-6 rounded-full border border-border bg-surface px-5 py-2.5 text-sm"
         >
           (DEMO) Promover-me a admin

@@ -58,15 +58,20 @@ function PagamentoPage() {
     );
   }
 
-  const handlePay = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
-      confirmPayment(metodo);
-      setLoading(false);
-      setSuccess(true);
-      setTimeout(() => navigate({ to: "/" }), 1800);
-    }, 1500);
+    const { error: err } = await confirmPayment(metodo, telefone);
+    setLoading(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setSuccess(true);
+    setTimeout(() => navigate({ to: "/" }), 1800);
   };
 
   if (success) {
@@ -163,6 +168,12 @@ function PagamentoPage() {
             className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
         </label>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
