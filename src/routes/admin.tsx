@@ -763,11 +763,43 @@ function EpisodeRowEditor({
   saving: boolean;
 }) {
   const [local, setLocal] = useState<EpisodeRow>(ep);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   useEffect(() => setLocal(ep), [ep]);
   const dirty =
     local.titulo !== ep.titulo ||
     local.duracao !== ep.duracao ||
     local.video_url !== ep.video_url;
+
+  const handleUpload = async (file: File) => {
+    setUploadError(null);
+    setUploading(true);
+    setUploadPct(0);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+      const path = `${ep.dorama_id}/${ep.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("episode-videos")
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type || "video/mp4",
+        });
+      if (upErr) throw upErr;
+      setUploadPct(80);
+      // Signed URL valid for 10 years (effectively permanent for streaming)
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("episode-videos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (sErr || !signed) throw sErr ?? new Error("Falha ao gerar URL");
+      setLocal((l) => ({ ...l, video_url: signed.signedUrl }));
+      setUploadPct(100);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Erro no upload");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-surface/60 p-4">
