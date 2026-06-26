@@ -114,6 +114,7 @@ function DoramasTab() {
   const { data: doramas } = useSuspenseQuery(doramasQuery);
   const [editing, setEditing] = useState<Dorama | null>(null);
   const [creating, setCreating] = useState(false);
+  const [managingEps, setManagingEps] = useState<Dorama | null>(null);
 
   const deleteM = useMutation({
     mutationFn: async (id: string) => {
