@@ -604,3 +604,250 @@ function UsersTab() {
     </div>
   );
 }
+
+// --------------------------- EPISODES MANAGER ---------------------------
+
+function EpisodesManager({ dorama, onClose }: { dorama: Dorama; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: episodes, isLoading } = useQuery({
+    queryKey: ["admin", "episodes", dorama.id],
+    queryFn: async (): Promise<EpisodeRow[]> => {
+      const { data, error } = await supabase
+        .from("episodes")
+        .select("*")
+        .eq("dorama_id", dorama.id)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as EpisodeRow[];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "episodes", dorama.id] });
+    qc.invalidateQueries({ queryKey: ["doramas"] });
+  };
+
+  const createM = useMutation({
+    mutationFn: async () => {
+      const nextOrdem = (episodes?.length ?? 0) + 1;
+      const { error } = await supabase.from("episodes").insert({
+        dorama_id: dorama.id,
+        ordem: nextOrdem,
+        titulo: `Episódio ${nextOrdem}`,
+        duracao: "40 min",
+        video_url:
+          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const updateM = useMutation({
+    mutationFn: async (ep: EpisodeRow) => {
+      const { error } = await supabase
+        .from("episodes")
+        .update({
+          ordem: ep.ordem,
+          titulo: ep.titulo,
+          duracao: ep.duracao,
+          video_url: ep.video_url,
+        })
+        .eq("id", ep.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const deleteM = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("episodes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const swap = async (a: EpisodeRow, b: EpisodeRow) => {
+    // Two-step swap to avoid unique conflicts if present
+    await supabase.from("episodes").update({ ordem: -a.ordem }).eq("id", a.id);
+    await supabase.from("episodes").update({ ordem: a.ordem }).eq("id", b.id);
+    await supabase.from("episodes").update({ ordem: b.ordem }).eq("id", a.id);
+    invalidate();
+  };
+
+  const move = (idx: number, dir: -1 | 1) => {
+    if (!episodes) return;
+    const target = idx + dir;
+    if (target < 0 || target >= episodes.length) return;
+    void swap(episodes[idx], episodes[target]);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fechar"
+        className="absolute inset-0 bg-background/80 backdrop-blur-md"
+      />
+      <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-border bg-surface-elevated shadow-glow">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface-elevated/95 px-6 py-4 backdrop-blur">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Episódios</div>
+            <h2 className="truncate font-display text-xl font-bold">{dorama.titulo}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={createM.isPending}
+              onClick={() => createM.mutate()}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo episódio
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-surface"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-3 px-6 py-5">
+          {isLoading && <div className="text-sm text-muted-foreground">A carregar…</div>}
+          {!isLoading && (episodes?.length ?? 0) === 0 && (
+            <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+              Sem episódios. Clique em <strong>Novo episódio</strong>.
+            </div>
+          )}
+          {episodes?.map((ep, idx) => (
+            <EpisodeRowEditor
+              key={ep.id}
+              ep={ep}
+              isFirst={idx === 0}
+              isLast={idx === (episodes.length - 1)}
+              onMoveUp={() => move(idx, -1)}
+              onMoveDown={() => move(idx, 1)}
+              onSave={(next) => updateM.mutate(next)}
+              onDelete={() => {
+                if (confirm(`Eliminar "${ep.titulo}"?`)) deleteM.mutate(ep.id);
+              }}
+              saving={updateM.isPending}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EpisodeRowEditor({
+  ep,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+  onSave,
+  onDelete,
+  saving,
+}: {
+  ep: EpisodeRow;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onSave: (ep: EpisodeRow) => void;
+  onDelete: () => void;
+  saving: boolean;
+}) {
+  const [local, setLocal] = useState<EpisodeRow>(ep);
+  useEffect(() => setLocal(ep), [ep]);
+  const dirty =
+    local.titulo !== ep.titulo ||
+    local.duracao !== ep.duracao ||
+    local.video_url !== ep.video_url;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface/60 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            disabled={isFirst}
+            onClick={onMoveUp}
+            className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface-elevated text-muted-foreground disabled:opacity-30"
+            aria-label="Mover para cima"
+          >
+            <ArrowUp className="h-3.5 w-3.5" />
+          </button>
+          <div className="text-center text-xs font-semibold text-muted-foreground">#{ep.ordem}</div>
+          <button
+            type="button"
+            disabled={isLast}
+            onClick={onMoveDown}
+            className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface-elevated text-muted-foreground disabled:opacity-30"
+            aria-label="Mover para baixo"
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="grid flex-1 gap-3 sm:grid-cols-[1fr_120px]">
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Título
+            </span>
+            <input
+              type="text"
+              value={local.titulo}
+              onChange={(e) => setLocal({ ...local, titulo: e.target.value })}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Duração
+            </span>
+            <input
+              type="text"
+              value={local.duracao}
+              onChange={(e) => setLocal({ ...local, duracao: e.target.value })}
+              className="input"
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              URL do vídeo
+            </span>
+            <input
+              type="text"
+              value={local.video_url}
+              onChange={(e) => setLocal({ ...local, video_url: e.target.value })}
+              className="input"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Eliminar
+        </button>
+        <button
+          type="button"
+          disabled={!dirty || saving}
+          onClick={() => onSave(local)}
+          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          <Save className="h-3.5 w-3.5" /> Guardar
+        </button>
+      </div>
+    </div>
+  );
+}
