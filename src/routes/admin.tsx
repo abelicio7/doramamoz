@@ -171,7 +171,14 @@ function DoramasTab() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="inline-flex gap-1">
+                  <div className="inline-flex flex-wrap justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setManagingEps(d)}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary"
+                    >
+                      <ListVideo className="h-3.5 w-3.5" /> Episódios
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditing(d)}
