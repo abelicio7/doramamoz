@@ -773,27 +773,84 @@ function EpisodeRowEditor({
     local.duracao !== ep.duracao ||
     local.video_url !== ep.video_url;
 
+  const ALLOWED_TYPES = ["video/mp4", "video/webm"];
+  const ALLOWED_EXTS = ["mp4", "webm"];
+  const MAX_SIZE_MB = 500;
+  const REC_MIN_WIDTH = 1280;
+  const REC_MIN_HEIGHT = 720;
+
+  const probeVideo = (file: File) =>
+    new Promise<{ width: number; height: number; duration: number }>((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => {
+        const out = { width: v.videoWidth, height: v.videoHeight, duration: v.duration };
+        URL.revokeObjectURL(url);
+        resolve(out);
+      };
+      v.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Não foi possível ler o vídeo. Ficheiro corrompido ou formato não suportado."));
+      };
+      v.src = url;
+    });
+
   const handleUpload = async (file: File) => {
     setUploadError(null);
-    setUploading(true);
     setUploadPct(0);
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const typeOk = ALLOWED_TYPES.includes(file.type) || ALLOWED_EXTS.includes(ext);
+    if (!typeOk) {
+      setUploadError("Formato inválido. Apenas MP4 ou WebM são aceites.");
+      return;
+    }
+    const sizeMb = file.size / (1024 * 1024);
+    if (sizeMb > MAX_SIZE_MB) {
+      setUploadError(`Ficheiro demasiado grande (${sizeMb.toFixed(1)} MB). Máximo: ${MAX_SIZE_MB} MB.`);
+      return;
+    }
+
+    setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-      const path = `${ep.dorama_id}/${ep.id}-${Date.now()}.${ext}`;
+      let meta: { width: number; height: number; duration: number } | null = null;
+      try {
+        meta = await probeVideo(file);
+      } catch (e) {
+        setUploadError(e instanceof Error ? e.message : "Vídeo ilegível.");
+        setUploading(false);
+        return;
+      }
+      if (meta.width < REC_MIN_WIDTH || meta.height < REC_MIN_HEIGHT) {
+        const ok = window.confirm(
+          `Resolução ${meta.width}x${meta.height} abaixo do recomendado (${REC_MIN_WIDTH}x${REC_MIN_HEIGHT}, 720p). Continuar mesmo assim?`,
+        );
+        if (!ok) {
+          setUploading(false);
+          return;
+        }
+      }
+
+      const safeExt = ALLOWED_EXTS.includes(ext) ? ext : file.type === "video/webm" ? "webm" : "mp4";
+      const path = `${ep.dorama_id}/${ep.id}-${Date.now()}.${safeExt}`;
       const { error: upErr } = await supabase.storage
         .from("episode-videos")
         .upload(path, file, {
           upsert: true,
-          contentType: file.type || "video/mp4",
+          contentType: file.type || `video/${safeExt}`,
         });
       if (upErr) throw upErr;
       setUploadPct(80);
-      // Signed URL valid for 10 years (effectively permanent for streaming)
       const { data: signed, error: sErr } = await supabase.storage
         .from("episode-videos")
         .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
       if (sErr || !signed) throw sErr ?? new Error("Falha ao gerar URL");
-      setLocal((l) => ({ ...l, video_url: signed.signedUrl }));
+      setLocal((l) => ({
+        ...l,
+        video_url: signed.signedUrl,
+        duracao: l.duracao || (meta ? `${Math.round(meta.duration / 60)} min` : l.duracao),
+      }));
       setUploadPct(100);
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Erro no upload");
@@ -801,6 +858,7 @@ function EpisodeRowEditor({
       setUploading(false);
     }
   };
+
 
   return (
     <div className="rounded-xl border border-border bg-surface/60 p-4">
