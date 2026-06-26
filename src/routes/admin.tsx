@@ -17,6 +17,7 @@ import {
   ListVideo,
   ArrowUp,
   ArrowDown,
+  Upload,
 } from "lucide-react";
 
 type EpisodeRow = {
