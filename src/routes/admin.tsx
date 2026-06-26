@@ -918,7 +918,7 @@ function EpisodeRowEditor({
                 {uploading ? `A enviar… ${uploadPct}%` : "Enviar vídeo"}
                 <input
                   type="file"
-                  accept="video/*"
+                  accept="video/mp4,video/webm,.mp4,.webm"
                   className="hidden"
                   disabled={uploading}
                   onChange={(e) => {
@@ -929,6 +929,10 @@ function EpisodeRowEditor({
                 />
               </label>
             </div>
+            <p className="mb-1 text-[10px] text-muted-foreground">
+              MP4 ou WebM · máx. 500 MB · recomendado 1280×720 (720p) ou superior
+            </p>
+
             <input
               type="text"
               value={local.video_url}
