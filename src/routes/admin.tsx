@@ -220,6 +220,13 @@ function DoramasTab() {
           }}
         />
       )}
+
+      {managingEps && (
+        <EpisodesManager
+          dorama={managingEps}
+          onClose={() => setManagingEps(null)}
+        />
+      )}
     </div>
   );
 }
