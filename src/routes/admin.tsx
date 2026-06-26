@@ -17,6 +17,7 @@ import {
   ListVideo,
   ArrowUp,
   ArrowDown,
+  Upload,
 } from "lucide-react";
 
 type EpisodeRow = {
@@ -763,11 +764,43 @@ function EpisodeRowEditor({
   saving: boolean;
 }) {
   const [local, setLocal] = useState<EpisodeRow>(ep);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   useEffect(() => setLocal(ep), [ep]);
   const dirty =
     local.titulo !== ep.titulo ||
     local.duracao !== ep.duracao ||
     local.video_url !== ep.video_url;
+
+  const handleUpload = async (file: File) => {
+    setUploadError(null);
+    setUploading(true);
+    setUploadPct(0);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+      const path = `${ep.dorama_id}/${ep.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("episode-videos")
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type || "video/mp4",
+        });
+      if (upErr) throw upErr;
+      setUploadPct(80);
+      // Signed URL valid for 10 years (effectively permanent for streaming)
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("episode-videos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (sErr || !signed) throw sErr ?? new Error("Falha ao gerar URL");
+      setLocal((l) => ({ ...l, video_url: signed.signedUrl }));
+      setUploadPct(100);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Erro no upload");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-surface/60 p-4">
@@ -817,17 +850,46 @@ function EpisodeRowEditor({
               className="input"
             />
           </label>
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              URL do vídeo
-            </span>
+          <div className="block sm:col-span-2">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Vídeo do episódio
+              </span>
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20">
+                <Upload className="h-3 w-3" />
+                {uploading ? `A enviar… ${uploadPct}%` : "Enviar vídeo"}
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleUpload(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <input
               type="text"
               value={local.video_url}
               onChange={(e) => setLocal({ ...local, video_url: e.target.value })}
               className="input"
+              placeholder="Cole um URL ou envie um ficheiro"
             />
-          </label>
+            {local.video_url && !uploading && (
+              <video
+                src={local.video_url}
+                controls
+                preload="metadata"
+                className="mt-2 max-h-40 w-full rounded-lg bg-black"
+              />
+            )}
+            {uploadError && (
+              <p className="mt-1 text-xs text-destructive">{uploadError}</p>
+            )}
+          </div>
         </div>
       </div>
 
