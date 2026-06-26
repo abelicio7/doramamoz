@@ -14,7 +14,19 @@ import {
   Pencil,
   X,
   Save,
+  ListVideo,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
+
+type EpisodeRow = {
+  id: string;
+  dorama_id: string;
+  ordem: number;
+  titulo: string;
+  duracao: string;
+  video_url: string;
+};
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin · DoramaMoz" }] }),
