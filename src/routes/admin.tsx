@@ -849,17 +849,46 @@ function EpisodeRowEditor({
               className="input"
             />
           </label>
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              URL do vídeo
-            </span>
+          <div className="block sm:col-span-2">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Vídeo do episódio
+              </span>
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20">
+                <Upload className="h-3 w-3" />
+                {uploading ? `A enviar… ${uploadPct}%` : "Enviar vídeo"}
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleUpload(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <input
               type="text"
               value={local.video_url}
               onChange={(e) => setLocal({ ...local, video_url: e.target.value })}
               className="input"
+              placeholder="Cole um URL ou envie um ficheiro"
             />
-          </label>
+            {local.video_url && !uploading && (
+              <video
+                src={local.video_url}
+                controls
+                preload="metadata"
+                className="mt-2 max-h-40 w-full rounded-lg bg-black"
+              />
+            )}
+            {uploadError && (
+              <p className="mt-1 text-xs text-destructive">{uploadError}</p>
+            )}
+          </div>
         </div>
       </div>
 
